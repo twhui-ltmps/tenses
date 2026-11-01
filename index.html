@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tenses Kart Race 🏎️</title>
+    <!-- Google Sign-in API -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Google Fonts for Racing Theme -->
+    <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --mario-red: #E52521;
+            --luigi-green: #43B047;
+            --peach-pink: #FF99CC;
+            --bowser-orange: #FBD000;
+            --toad-blue: #004B87;
+            --sky-blue: #60a5fa;
+            --track-grey: #4b5563;
+            --coin-gold: #fbbf24;
+            --text-dark: #1f2937;
+            --text-light: #ffffff;
+            --correct-bg: rgba(67, 176, 71, 0.2);
+            --correct-border: #43B047;
+            --wrong-bg: rgba(229, 37, 33, 0.2);
+            --wrong-border: #E52521;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--sky-blue);
+            background-image: 
+                repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.1) 75%, rgba(255,255,255,0.1)),
+                repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.1) 75%, rgba(255,255,255,0.1));
+            background-position: 0 0, 20px 20px;
+            background-size: 40px 40px;
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden; 
+            touch-action: manipulation;
+        }
+
+        /* Racing Checkered Banner at the top/bottom */
+        .checkered-banner {
+            position: fixed;
+            width: 100%;
+            height: 20px;
+            background: repeating-linear-gradient(90deg, #000, #000 20px, #fff 20px, #fff 40px);
+            z-index: 1;
+        }
+        .banner-top { top: 0; left: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.3);}
+        .banner-bottom { bottom: 0; left: 0; box-shadow: 0 -4px 10px rgba(0,0,0,0.3);}
+
+        /* Main Panel Container */
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 24px;
+            border: 6px solid var(--toad-blue);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3), inset 0 0 0 4px rgba(255,255,255,0.5);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+            max-height: 90vh;
+            overflow-y: auto;
+            margin: 30px 15px;
+        }
+
+        h1 { 
+            font-family: 'Titan One', cursive;
+            color: var(--mario-red); 
+            font-size: 32px;
+            margin-top: 0; 
+            text-shadow: 2px 2px 0px #000, -2px -2px 0px #fff, 0 4px 0px #990000;
+            letter-spacing: 1px;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-family: 'Titan One', cursive;
+            color: var(--toad-blue);
+            font-size: 26px;
+            text-shadow: 2px 2px 0px #fff;
+            margin-bottom: 20px;
+        }
+
+        .screen { display: none; }
+        .screen.active { display: block; animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        @keyframes zoomIn {
+            0% { opacity: 0; transform: scale(0.7); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 900; color: var(--text-dark); font-size: 16px; }
+        
+        select, input[type="number"], input[type="text"] {
+            width: 100%; padding: 12px 16px; border-radius: 12px; border: 3px solid var(--track-grey); 
+            font-size: 16px; font-family: 'Nunito', sans-serif; box-sizing: border-box; 
+            transition: all 0.3s; background: #f3f4f6; color: var(--text-dark);
+            outline: none; font-weight: 800; cursor: pointer;
+        }
+        select:focus, input:focus { border-color: var(--mario-red); background: #fff; box-shadow: 0 0 0 4px rgba(229,37,33,0.2); }
+
+        .btn {
+            background: var(--luigi-green);
+            color: #fff; 
+            border: 3px solid #1f6b22;
+            padding: 14px 20px;
+            border-radius: 12px; 
+            font-size: 18px; 
+            font-family: 'Titan One', cursive;
+            cursor: pointer; 
+            margin: 8px 0; 
+            width: 100%; 
+            box-sizing: border-box; 
+            box-shadow: 0 6px 0px #1f6b22;
+            transition: all 0.1s ease;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .btn:hover { background: #50cc55; transform: translateY(2px); box-shadow: 0 4px 0px #1f6b22; }
+        .btn:active { transform: translateY(6px); box-shadow: 0 0px 0px #1f6b22; }
+        
+        .btn.secondary { background: var(--bowser-orange); border-color: #b39500; color: #665500; box-shadow: 0 6px 0px #b39500; text-shadow: 1px 1px 0px rgba(255,255,255,0.5);}
+        .btn.secondary:hover { background: #ffdf33; transform: translateY(2px); box-shadow: 0 4px 0px #b39500; }
+        .btn.secondary:active { transform: translateY(6px); box-shadow: 0 0px 0px #b39500; }
+        
+        .btn.rank-btn { background: var(--mario-red); border-color: #990000; color: #fff; box-shadow: 0 6px 0px #990000; }
+        .btn.rank-btn:hover { background: #ff3333; transform: translateY(2px); box-shadow: 0 4px 0px #990000; }
+        .btn.rank-btn:active { transform: translateY(6px); box-shadow: 0 0px 0px #990000; }
+
+        .btn.outline-btn { background: #e5e7eb; border: 3px solid #9ca3af; color: #4b5563; font-family: 'Nunito'; font-weight: 900; box-shadow: 0 4px 0px #9ca3af;}
+        .btn.outline-btn:hover { background: #d1d5db; transform: translateY(2px); box-shadow: 0 2px 0px #9ca3af;}
+        .btn.outline-btn:active { transform: translateY(4px); box-shadow: 0 0px 0px #9ca3af;}
+
+        .stats-bar {
+            display: flex; justify-content: space-between; background: var(--text-dark); 
+            border: 3px solid var(--track-grey); padding: 12px 15px; border-radius: 12px; 
+            font-size: 16px; font-family: 'Titan One', cursive; margin-bottom: 20px; color: #fff;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        /* Question Box Styling */
+        .question-box {
+            font-size: 22px; font-weight: 900; margin: 10px 0 20px 0; color: var(--text-dark); 
+            min-height: 100px; display: flex; align-items: center; justify-content: center; text-align: center;
+            background: #fff; border: 4px dashed var(--bowser-orange); border-radius: 16px;
+            padding: 25px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+
+        .blank-space {
+            color: var(--mario-red);
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+
+        .choices-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        /* Choice Buttons */
+        .choice-btn {
+            background: #fff;
+            border: 3px solid var(--toad-blue);
+            border-radius: 12px;
+            padding: 16px 10px;
+            font-size: 18px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            color: var(--toad-blue);
+            cursor: pointer;
+            transition: all 0.1s;
+            box-shadow: 0 4px 0 var(--toad-blue);
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .choice-btn:hover {
+            background: #eef2ff;
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 var(--toad-blue);
+        }
+        .choice-btn:active { transform: translateY(4px); box-shadow: none; }
+
+        @keyframes bumpCorrect { 
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); background-color: var(--correct-bg); border-color: var(--correct-border); }
+            100% { transform: scale(1); background-color: var(--correct-bg); border-color: var(--correct-border); }
+        }
+        @keyframes spinWrong {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-2deg); background-color: var(--wrong-bg); border-color: var(--wrong-border);}
+            75% { transform: translateX(5px) rotate(2deg); background-color: var(--wrong-bg); border-color: var(--wrong-border);}
+            100% { transform: translateX(0); background-color: var(--wrong-bg); border-color: var(--wrong-border);}
+        }
+        .feedback-correct { animation: bumpCorrect 0.3s ease forwards; }
+        .feedback-wrong { animation: spinWrong 0.4s ease forwards; }
+
+        .table-container { max-height: 320px; overflow-y: auto; border-radius: 12px; border: 3px solid var(--track-grey); background: #fff;}
+        table { width: 100%; border-collapse: collapse; color: var(--text-dark); }
+        th, td { border-bottom: 2px solid #f3f4f6; padding: 12px 10px; text-align: center; font-size: 16px; font-weight: 800;}
+        th { background-color: var(--toad-blue); color: #fff; position: sticky; top: 0; font-family: 'Titan One', cursive; font-size: 14px; letter-spacing: 0.5px; border-bottom: none;}
+        tr:nth-child(even) { background-color: #f9fafb; }
+        tr:hover { background-color: #fef08a; }
+
+        .leaderboard-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+        .leaderboard-filters select { flex: 1; min-width: 140px; }
+
+        .auth-section {
+            background: #f8fafc; border: 3px dashed var(--mario-red); border-radius: 16px;
+            padding: 15px; margin-bottom: 20px;
+        }
+
+        /* Custom Modal (No native alerts/confirms allowed) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center;
+            z-index: 1000; backdrop-filter: blur(3px);
+        }
+        .modal-box {
+            background: #fff; padding: 25px; border-radius: 20px; border: 5px solid var(--mario-red);
+            width: 90%; max-width: 440px; text-align: center; font-family: 'Nunito', sans-serif;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: zoomIn 0.2s ease-out forwards;
+        }
+        .modal-title { font-family: 'Titan One', cursive; font-size: 24px; color: var(--text-dark); margin-bottom: 15px; }
+        .modal-msg { font-size: 17px; font-weight: 800; margin-bottom: 20px; color: var(--track-grey); line-height: 1.5; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: center; }
+
+        .tip-box {
+            background: #f0fdf4;
+            border: 2px dashed var(--luigi-green);
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-top: 10px;
+            font-size: 14px;
+            text-align: left;
+            color: var(--text-dark);
+            line-height: 1.4;
+        }
+
+        /* Scrollbar styles for webkit */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #f3f4f6; border-radius: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--track-grey); border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="checkered-banner banner-top"></div>
+    
+    <!-- Custom Modal System -->
+    <div class="modal-overlay" id="custom-modal">
+        <div class="modal-box">
+            <div class="modal-title" id="modal-title">System Message</div>
+            <div class="modal-msg" id="modal-msg">Message here</div>
+            <div class="modal-buttons" id="modal-buttons">
+                <!-- Buttons injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="app-container">
+        
+        <!-- Menu Screen -->
+        <div id="menu-screen" class="screen active">
+            <h1>🏎️ Tenses Kart Race 🏁</h1>
+            
+            <div class="auth-section">
+                <div id="google-btn-container" style="display: flex; justify-content: center; min-height: 40px;"></div>
+                <div id="user-welcome" style="display: none; color: var(--luigi-green); font-family: 'Titan One', cursive; font-size: 18px; text-shadow: 1px 1px 0px rgba(0,0,0,0.1);"></div>
+                <p id="login-hint" style="margin: 8px 0 0; color: var(--track-grey); font-size: 14px; font-weight: 800;">[ PIT STOP: Login to save your lap times! ]</p>
+            </div>
+
+            <div class="form-group">
+                <label>🏎️ Select Track (Level):</label>
+                <select id="question-type">
+                    <option value="level1">🍄 Mushroom Cup: Present Continuous</option>
+                    <option value="level2">⭐️ Star Cup: Present Tense</option>
+                    <option value="level3">🐢 Shell Cup: Past Tense</option>
+                    <option value="mixed">🌈 Rainbow Road: Mixed Tenses</option>
+                </select>
+            </div>
+            
+            <button class="btn" onclick="startGame('infinite')">♾️ Free Practice (Endless)</button>
+            <button class="btn rank-btn" onclick="startGame('timed')">⏱️ Time Trials (3-Min Race)</button>
+            
+            <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 5px;">
+                <button class="btn secondary" onclick="showLeaderboard()">🏆 Racing Leaderboard</button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="stats-bar">
+                <span id="time-display" style="color: var(--coin-gold);">Time: 03:00</span>
+                <span id="score-display" style="display: none; color: var(--peach-pink);">Score: 0</span>
+                <span id="progress-display" style="color: var(--luigi-green);">Laps: 0/0</span>
+            </div>
+            <div id="level-display" style="color: var(--toad-blue); font-family: 'Titan One', cursive; margin-bottom:10px; font-size: 20px;"></div>
+            
+            <div class="question-box" id="question-text">
+                Mission text...
+            </div>
+            
+            <!-- Multiple Choice Grid -->
+            <div id="choices-container" class="choices-grid">
+                <!-- Buttons injected via JS -->
+            </div>
+
+            <button class="btn outline-btn" onclick="requestExit()">🛑 Pit Stop (Quit Race)</button>
+        </div>
+
+        <!-- Result Screen -->
+        <div id="result-screen" class="screen">
+            <h2>🏁 Race Finished! 🏁</h2>
+            <div id="final-stats" style="font-size: 18px; font-weight: 900; line-height: 1.8; margin-bottom: 20px; background: #f3f4f6; padding: 15px; border-radius: 16px; border: 3px solid var(--track-grey);"></div>
+            
+            <div id="upload-section" class="form-group" style="display: none; background: #fff; padding: 20px; border-radius: 16px; border: 4px solid var(--bowser-orange);">
+                <label style="color: var(--text-dark); text-align: center; font-size: 18px;">Upload Race Data</label>
+                
+                <div style="text-align: center; margin-bottom: 15px; font-size: 16px; font-weight: 800;">
+                    Racer: <span id="upload-name-display" style="color: var(--toad-blue); font-family: 'Titan One', cursive;"></span>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <select id="class-select" style="flex: 1;">
+                        <option value="1A">Kart 1A</option>
+                        <option value="2A">Kart 2A</option>
+                        <option value="3A">Kart 3A</option>
+                        <option value="4A">Kart 4A</option>
+                        <option value="5A">Kart 5A</option>
+                    </select>
+                    <input type="number" id="student-num" placeholder="Class No. (1-40)" min="1" max="40" style="flex: 2;">
+                </div>
+                <button class="btn rank-btn" id="submit-score-btn" onclick="submitScore()">Submit Score 📡</button>
+            </div>
+            
+            <button class="btn secondary" onclick="showScreen('menu-screen')">Back to Garage</button>
+        </div>
+
+        <!-- Leaderboard Screen -->
+        <div id="leaderboard-screen" class="screen">
+            <h2>🏆 Hall of Fame</h2>
+            <div class="leaderboard-filters">
+                <select id="filter-mode" onchange="fetchLeaderboard()">
+                    <option value="timed_level1">🍄 Mushroom Cup</option>
+                    <option value="timed_level2">⭐️ Star Cup</option>
+                    <option value="timed_level3">🐢 Shell Cup</option>
+                    <option value="timed_mixed">🌈 Rainbow Road</option>
+                </select>
+                
+                <select id="filter-class" onchange="fetchLeaderboard()">
+                    <option value="ALL">🌎 All Racers</option>
+                    <option value="1A">1A</option>
+                    <option value="2A">2A</option>
+                    <option value="3A">3A</option>
+                    <option value="4A">4A</option>
+                    <option value="5A">5A</option>
+                </select>
+            </div>
+            <div class="table-container">
+                <table id="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Class</th>
+                            <th>No.</th>
+                            <th>Racer Name</th>
+                            <th>Score</th>
+                            <th>Acc.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body"></tbody>
+                </table>
+            </div>
+            <br>
+            <button class="btn secondary" onclick="showScreen('menu-screen')">Back</button>
+        </div>
+
+    </div>
+    
+    <div class="checkered-banner banner-bottom"></div>
+
+    <!-- Custom UI Modals (Replaces alert/confirm) -->
+    <script>
+        function showModal(title, msg, type = 'alert', onConfirm = null) {
+            const overlay = document.getElementById('custom-modal');
+            const titleEl = document.getElementById('modal-title');
+            const msgEl = document.getElementById('modal-msg');
+            const btns = document.getElementById('modal-buttons');
+            
+            titleEl.innerHTML = title;
+            msgEl.innerHTML = msg;
+            btns.innerHTML = '';
+            
+            if (type === 'alert') {
+                const btn = document.createElement('button');
+                btn.className = 'btn';
+                btn.innerText = 'OK';
+                btn.onclick = () => { overlay.style.display = 'none'; };
+                btns.appendChild(btn);
+            } else if (type === 'confirm') {
+                const yesBtn = document.createElement('button');
+                yesBtn.className = 'btn rank-btn';
+                yesBtn.innerText = 'Yes, Quit';
+                yesBtn.onclick = () => { overlay.style.display = 'none'; if(onConfirm) onConfirm(); };
+                
+                const noBtn = document.createElement('button');
+                noBtn.className = 'btn outline-btn';
+                noBtn.innerText = 'Keep Racing';
+                noBtn.onclick = () => { overlay.style.display = 'none'; };
+                
+                btns.appendChild(yesBtn);
+                btns.appendChild(noBtn);
+            }
+            overlay.style.display = 'flex';
+        }
+    </script>
+
+    <!-- Google Login Logic -->
+    <script>
+        let currentUser = null; 
+        function parseJwt(token) {
+            try {
+                return JSON.parse(decodeURIComponent(window.atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join('')));
+            } catch (e) { return null; }
+        }
+
+        function handleCredentialResponse(response) {
+            const payload = parseJwt(response.credential);
+            if(payload) {
+                currentUser = { id: payload.sub, lastName: payload.family_name || payload.name || "Racer" };
+                document.getElementById('google-btn-container').style.display = 'none';
+                document.getElementById('login-hint').style.display = 'none';
+                const welcomeEl = document.getElementById('user-welcome');
+                welcomeEl.innerText = `🏎️ Ready, Racer ${currentUser.lastName}!`;
+                welcomeEl.style.display = 'block';
+            }
+        }
+
+        window.onload = function () {
+            google.accounts.id.initialize({
+                client_id: "116742217903-7ni36v4h16gcakn45n699r9guthfjiu6.apps.googleusercontent.com",
+                callback: handleCredentialResponse
+            });
+            google.accounts.id.renderButton(
+                document.getElementById("google-btn-container"),
+                { theme: "outline", size: "large", shape: "pill", width: 250 }
+            );
+        };
+    </script>
+
+    <!-- Firebase Logic -->
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBVju3LLYlJ1b7RD-jy61-k6HyVaqDCzmc",
+    authDomain: "tenses-251fc.firebaseapp.com",
+    projectId: "tenses-251fc",
+    storageBucket: "tenses-251fc.firebasestorage.app",
+    messagingSenderId: "116742217903",
+    appId: "1:116742217903:web:071bfecba4d38eec51345a",
+    measurementId: "G-CRM2KKPHSJ"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+
+
+        window.saveToFirebase = async (data) => {
+            const btn = document.getElementById('submit-score-btn');
+            try {
+                btn.innerText = "Transmitting... 📡";
+                btn.disabled = true;
+                const docId = `${data.googleId}_timed_${data.questionType}`;
+                const docRef = doc(db, "leaderboard", docId);
+                const docSnap = await getDoc(docRef);
+                
+                if (docSnap.exists() && data.score <= docSnap.data().score) {
+                    showModal("🐢 Too Slow!", `Your top Score in this Cup is ${docSnap.data().score}. You didn't beat your record.`);
+                    btn.innerText = "Submit Score 📡";
+                    btn.disabled = false;
+                    return;
+                }
+                
+                await setDoc(docRef, { ...data, gameMode: "timed", timestamp: new Date() });
+                showModal("⭐️ New Record!", "Score saved successfully! Check the Hall of Fame.");
+                document.getElementById('filter-mode').value = `timed_${data.questionType}`;
+                showScreen('leaderboard-screen');
+                fetchLeaderboard();
+            } catch (e) {
+                showModal("🍌 Slip Up!", "Error saving data. Please check your internet connection.");
+            } finally {
+                btn.innerText = "Submit Score 📡";
+                btn.disabled = false;
+            }
+        };
+
+        window.fetchLeaderboard = async () => {
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = "<tr><td colspan='6'>Fetching records... 🏎️💨</td></tr>";
+            const qType = document.getElementById('filter-mode').value.split('_')[1]; 
+            const cls = document.getElementById('filter-class').value;
+            
+            let conds = [where("gameMode", "==", "timed"), where("questionType", "==", qType)];
+            if (cls !== "ALL") conds.push(where("class", "==", cls));
+
+            try {
+                const q = query(collection(db, "leaderboard"), ...conds, orderBy("score", "desc"), limit(30));
+                const snap = await getDocs(q);
+                tbody.innerHTML = snap.empty ? "<tr><td colspan='6'>No records found in this Cup.</td></tr>" : "";
+                
+                let rank = 1;
+                snap.forEach((doc) => {
+                    const d = doc.data();
+                    let rDisp = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="font-weight:900;">${rDisp}</td>
+                            <td>${d.class}</td>
+                            <td>${d.studentNum}</td>
+                            <td style="font-family:'Titan One'; color:var(--toad-blue);">${d.lastName}</td>
+                            <td style="color:var(--mario-red); font-weight:900;">${d.score}</td>
+                            <td>${d.accuracy}%</td>
+                        </tr>`;
+                    rank++;
+                });
+            } catch (e) { tbody.innerHTML = `<tr><td colspan='6' style="color:var(--mario-red);">Error retrieving data.</td></tr>`; }
+        };
+    </script>
+
+    <!-- Game Logic & Question Banks (HK Primary 1-5 Context) -->
+    <script>
+        // Helper function to extract time indicators from question text
+        function getTimeIndicator(text) {
+            const pattern = /\b(right now|now|at the moment|Look|Listen|today|yesterday|tomorrow|last\s+\w+|every\s+\w+|always|usually|sometimes|often|never|this morning|ago|on\s+(Sundays|Mondays|Tuesdays|Wednesdays|Thursdays|Fridays|Saturdays|weekends)|at\s+7\s+o'clock|at\s+12:30\s+p\.m\.|at\s+5:00\s+p\.m\.|at\s+8:00\s+a\.m\.|in\s+summer|in\s+winter)\b/i;
+            const match = text.match(pattern);
+            return match ? match[0] : null;
+        }
+
+        // Helper function to generate verb-to-be tips if wrong answer had a be-verb mismatch
+        function getBeVerbTip(questionText, selectedAns, correctAns) {
+            const matchBe = (str) => {
+                const m = str.match(/\b(am|is|are|was|were)\b/i);
+                return m ? m[0].toLowerCase() : null;
+            };
+
+            const selBe = matchBe(selectedAns);
+            const corrBe = matchBe(correctAns);
+
+            if (!selBe || !corrBe || selBe === corrBe) return null;
+
+            // Identify Subject
+            let subj = "Subject";
+            if (/^(Look!|Listen!)/i.test(questionText.trim())) {
+                const afterExcl = questionText.replace(/^(Look!|Listen!)\s*/i, '');
+                subj = afterExcl.split('_____')[0].trim();
+            } else {
+                subj = questionText.split('_____')[0].trim();
+            }
+
+            return `⚠️ <b>Verb 'to be' tip:</b><br><b style="color:var(--toad-blue);">${subj}</b> ➔ ✔️ <b>${corrBe}</b> &nbsp;/&nbsp; ❌ <s>${selBe}</s>`;
+        }
+
+// Level 1: Present Continuous Tense (60 Questions - HK Context, Explicit Time Indicators, Varied Short Names)
+const level1 = [
+    { q: "Look! Tom _____ (eat) siu mai at the tuck shop right now.", a: "is eating", w: ["are eating", "eats", "is eat"] },
+    { q: "Lily _____ (drink) lemon tea in a cha chaan teng at the moment.", a: "is drinking", w: ["are drinking", "drinks", "is drink"] },
+    { q: "Jack and Sam _____ (go) to Ocean Park by MTR right now.", a: "are going", w: ["is going", "go", "are go"] },
+    { q: "Ann _____ (take) the Star Ferry across Victoria Harbour now.", a: "is taking", w: ["are taking", "takes", "is take"] },
+    { q: "Bob and Pam _____ (buy) egg tarts from the bakery at the moment.", a: "are buying", w: ["is buying", "buy", "are buy"] },
+    { q: "Leo _____ (read) an English book in the school library right now.", a: "is reading", w: ["are reading", "reads", "is read"] },
+    { q: "Amy _____ (write) a letter to her pen pal in Tai Po now.", a: "is writing", w: ["are writing", "writes", "is write"] },
+    { q: "Mark and I _____ (draw) a picture of the Peak at the moment.", a: "are drawing", w: ["is drawing", "draw", "are draw"] },
+    { q: "Ben _____ (sleep) on the double-decker bus right now.", a: "is sleeping", w: ["are sleeping", "sleeps", "is sleep"] },
+    { q: "Paul and Sue _____ (run) to catch the minibus in Mong Kok now.", a: "are running", w: ["is running", "run", "are run"] },
+    { q: "Ken _____ (swim) at Repulse Bay beach right now.", a: "is swimming", w: ["are swimming", "swims", "is swim"] },
+    { q: "Tim _____ (give) his Octopus card to the driver at the moment.", a: "is giving", w: ["are giving", "gives", "is give"] },
+    { q: "Roy and Joy _____ (sing) the school song in the hall now.", a: "are singing", w: ["is singing", "sing", "are sing"] },
+    { q: "Jim _____ (sweep) the floor of his flat in Sha Tin right now.", a: "is sweeping", w: ["are sweeping", "sweeps", "is sweep"] },
+    { q: "Ray and Zoe _____ (build) a sandcastle in Sai Kung at the moment.", a: "are building", w: ["is building", "build", "are build"] },
+    { q: "Max _____ (choose) a new pencil case at the stationery shop now.", a: "is choosing", w: ["are choosing", "chooses", "is choose"] },
+    { q: "Dan _____ (throw) a ball in Victoria Park right now.", a: "is throwing", w: ["are throwing", "throws", "is throw"] },
+    { q: "Mia and Ian _____ (hide) from their brother in the playground now.", a: "are hiding", w: ["is hiding", "hide", "are hide"] },
+    { q: "Eva _____ (wake) up late for school this morning.", a: "is waking", w: ["are waking", "wakes", "is wake"] },
+    { q: "Ron and I _____ (blow) the hot soup at the restaurant now.", a: "are blowing", w: ["is blowing", "blow", "are blow"] },
+    { q: "Tom _____ (catch) the MTR to Central right now.", a: "is catching", w: ["are catching", "catches", "is catch"] },
+    { q: "Lily _____ (cut) a piece of paper for her Art homework now.", a: "is cutting", w: ["are cutting", "cuts", "is cut"] },
+    { q: "Jack and Sam _____ (do) their Maths exercise at the moment.", a: "are doing", w: ["is doing", "do", "are do"] },
+    { q: "Ann _____ (drive) her toy car in the living room now.", a: "is driving", w: ["are driving", "drives", "is drive"] },
+    { q: "Look! Bob _____ (fall) down on the sports ground right now.", a: "is falling", w: ["are falling", "falls", "is fall"] },
+    { q: "Leo _____ (feed) the birds in the park at the moment.", a: "is feeding", w: ["are feeding", "feeds", "is feed"] },
+    { q: "Amy and I _____ (feel) very cold in the classroom right now.", a: "are feeling", w: ["is feeling", "feel", "are feel"] },
+    { q: "Mark _____ (fight) with his brother over a toy now.", a: "is fighting", w: ["are fighting", "fights", "is fight"] },
+    { q: "Ben and Paul _____ (find) a seat in the crowded dim sum restaurant now.", a: "are finding", w: ["is finding", "find", "are find"] },
+    { q: "Look! The kite _____ (fly) high above Tai Po Waterfront Park now.", a: "is flying", w: ["are flying", "flies", "is fly"] },
+    { q: "Sue _____ (forget) her locker password right now.", a: "is forgetting", w: ["are forgetting", "forgets", "is forget"] },
+    { q: "Ken _____ (get) off the tram in Causeway Bay at the moment.", a: "is getting", w: ["are getting", "gets", "is get"] },
+    { q: "Tim and Roy _____ (grow) a bean plant for Science class now.", a: "are growing", w: ["is growing", "grow", "are grow"] },
+    { q: "Joy _____ (hang) her jacket on the chair right now.", a: "is hanging", w: ["are hanging", "hangs", "is hang"] },
+    { q: "Jim and Ray _____ (have) lunch in a fast food shop at the moment.", a: "are having", w: ["is having", "have", "are have"] },
+    { q: "Zoe _____ (hear) a loud noise outside the window now.", a: "is hearing", w: ["are hearing", "hears", "is hear"] },
+    { q: "Max _____ (hold) his umbrella because it is raining right now.", a: "is holding", w: ["are holding", "holds", "is hold"] },
+    { q: "Dan and Mia _____ (keep) their desks clean today.", a: "are keeping", w: ["is keeping", "keep", "are keep"] },
+    { q: "Ian _____ (know) the answer to the teacher's question now.", a: "is knowing", w: ["are knowing", "knows", "is know"] },
+    { q: "Eva and Ron _____ (learn) about Hong Kong history at the museum now.", a: "are learning", w: ["is learning", "learn", "are learn"] },
+    { q: "Tom _____ (leave) the classroom to go to the toilet right now.", a: "is leaving", w: ["are leaving", "leaves", "is leave"] },
+    { q: "Lily _____ (let) her friend borrow her eraser at the moment.", a: "is letting", w: ["are letting", "lets", "is let"] },
+    { q: "Jack and Sam _____ (light) a lantern for Mid-Autumn Festival now.", a: "are lighting", w: ["is lighting", "light", "are light"] },
+    { q: "Ann _____ (lose) the race on Sports Day right now.", a: "is losing", w: ["are losing", "loses", "is lose"] },
+    { q: "Bob and Pam _____ (make) dumplings for dinner at the moment.", a: "are making", w: ["is making", "make", "are make"] },
+    { q: "Leo _____ (mean) to finish his homework right now.", a: "is meaning", w: ["are meaning", "means", "is mean"] },
+    { q: "Amy _____ (meet) her friends at the MTR station now.", a: "is meeting", w: ["are meeting", "meets", "is meet"] },
+    { q: "Mark and I _____ (pay) for our fishballs with Octopus cards right now.", a: "are paying", w: ["is paying", "pay", "are pay"] },
+    { q: "Ben _____ (put) his books into his schoolbag at the moment.", a: "is putting", w: ["are putting", "puts", "is put"] },
+    { q: "Paul and Sue _____ (ride) the Ngong Ping 360 cable car now.", a: "are riding", w: ["is riding", "ride", "are ride"] },
+    { q: "Ken _____ (ring) the school bell right now.", a: "is ringing", w: ["are ringing", "rings", "is ring"] },
+    { q: "The sun _____ (rise) over Victoria Harbour this morning.", a: "is rising", w: ["are rising", "rises", "is rise"] },
+    { q: "Tim _____ (say) goodbye to his teacher at the moment.", a: "is saying", w: ["are saying", "says", "is say"] },
+    { q: "Roy and Joy _____ (see) the pandas at Ocean Park now.", a: "are seeing", w: ["is seeing", "see", "are see"] },
+    { q: "Jim _____ (sell) flags for charity in Central right now.", a: "is selling", w: ["are selling", "sells", "is sell"] },
+    { q: "Ray and Zoe _____ (send) a parcel at the post office at the moment.", a: "are sending", w: ["is sending", "send", "are send"] },
+    { q: "Max _____ (set) the table for dinner right now.", a: "is setting", w: ["are setting", "sets", "is set"] },
+    { q: "Dan _____ (sew) a button on his school uniform now.", a: "is sewing", w: ["are sewing", "sews", "is sew"] },
+    { q: "Mia and Ian _____ (shake) hands with the principal at the moment.", a: "are shaking", w: ["is shaking", "shake", "are shake"] },
+    { q: "Eva _____ (show) her new watch to her friends right now.", a: "is showing", w: ["are showing", "shows", "is show"] }
+];
+
+// Level 2: Simple Present Tense (60 Questions - HK Context, Explicit Time Indicators, Varied Short Names)
+const level2 = [
+    { q: "Tom usually _____ (eat) pineapple buns for breakfast every morning.", a: "eats", w: ["eat", "is eating", "ate"] },
+    { q: "Lily always _____ (drink) lemon tea at the cha chaan teng on Sundays.", a: "drinks", w: ["drink", "is drinking", "drank"] },
+    { q: "Jack and Sam often _____ (go) to Hong Kong Disneyland on holidays.", a: "go", w: ["goes", "are going", "went"] },
+    { q: "Ann sometimes _____ (take) the minibus to school every day.", a: "takes", w: ["take", "is taking", "took"] },
+    { q: "Bob and Pam usually _____ (buy) fresh fruit from the wet market.", a: "buy", w: ["buys", "are buying", "bought"] },
+    { q: "Leo always _____ (read) the newspaper on the MTR every morning.", a: "reads", w: ["read", "is reading", "read"] },
+    { q: "Amy often _____ (write) notes in her English lesson.", a: "writes", w: ["write", "is writing", "wrote"] },
+    { q: "Mark and I never _____ (draw) on the classroom walls.", a: "draw", w: ["draws", "are drawing", "drew"] },
+    { q: "Ben usually _____ (sleep) at 9:30 p.m. every night.", a: "sleeps", w: ["sleep", "is sleeping", "slept"] },
+    { q: "Paul and Sue always _____ (run) in Victoria Park on Sunday mornings.", a: "run", w: ["runs", "are running", "ran"] },
+    { q: "Ken usually _____ (swim) at the public pool in summer.", a: "swims", w: ["swim", "is swimming", "swam"] },
+    { q: "Tim always _____ (give) his seat to the elderly on the bus.", a: "gives", w: ["give", "is giving", "gave"] },
+    { q: "Roy and Joy often _____ (sing) pop songs during recess.", a: "sing", w: ["sings", "are singing", "sang"] },
+    { q: "Jim sometimes _____ (sweep) the classroom floor after school.", a: "sweeps", w: ["sweep", "is sweeping", "swept"] },
+    { q: "Ray and Zoe usually _____ (build) puzzles together on weekends.", a: "build", w: ["builds", "are building", "built"] },
+    { q: "Max always _____ (choose) chocolate ice cream at the shop.", a: "chooses", w: ["choose", "is choosing", "chose"] },
+    { q: "Dan often _____ (throw) his rubbish into the bin.", a: "throws", w: ["throw", "is throwing", "threw"] },
+    { q: "Mia and Ian never _____ (hide) their homework from the teacher.", a: "hide", w: ["hides", "are hiding", "hid"] },
+    { q: "Eva usually _____ (wake) up at 7:00 a.m. on weekdays.", a: "wakes", w: ["wake", "is waking", "woke"] },
+    { q: "Ron and I always _____ (blow) the candles on our birthday cakes.", a: "blow", w: ["blows", "are blowing", "blew"] },
+    { q: "Tom often _____ (catch) the school bus at 7:30 a.m.", a: "catches", w: ["catch", "is catching", "caught"] },
+    { q: "Lily sometimes _____ (cut) her fingernails on Sundays.", a: "cuts", w: ["cut", "is cutting", "cut"] },
+    { q: "Jack and Sam always _____ (do) their homework before dinner.", a: "do", w: ["does", "are doing", "did"] },
+    { q: "Ann's dad usually _____ (drive) them to Sha Tin on weekends.", a: "drives", w: ["drive", "is driving", "drove"] },
+    { q: "Bob never _____ (fall) asleep during the Maths lesson.", a: "falls", w: ["fall", "is falling", "fell"] },
+    { q: "Leo often _____ (feed) his pet goldfish in the evening.", a: "feeds", w: ["feed", "is feeding", "fed"] },
+    { q: "Amy and I usually _____ (feel) tired after PE class.", a: "feel", w: ["feels", "are feeling", "felt"] },
+    { q: "Mark never _____ (fight) with his classmates.", a: "fights", w: ["fight", "is fighting", "fought"] },
+    { q: "Ben and Paul always _____ (find) good bargains in Sham Shui Po.", a: "find", w: ["finds", "are finding", "found"] },
+    { q: "Sue usually _____ (fly) a kite in clear weather in autumn.", a: "flies", w: ["fly", "is flying", "flew"] },
+    { q: "Ken sometimes _____ (forget) to bring his student handbook.", a: "forgets", w: ["forget", "is forgetting", "forgot"] },
+    { q: "Tim and Roy always _____ (get) full marks in dictation.", a: "get", w: ["gets", "are getting", "got"] },
+    { q: "Joy often _____ (grow) tall very fast every year.", a: "grows", w: ["grow", "is growing", "grew"] },
+    { q: "Jim and Ray usually _____ (hang) their clothes outside on sunny days.", a: "hang", w: ["hangs", "are hanging", "hung"] },
+    { q: "Zoe always _____ (have) PE lessons on Tuesdays and Thursdays.", a: "has", w: ["have", "is having", "had"] },
+    { q: "Max often _____ (hear) the MTR trains near his house.", a: "hears", w: ["hear", "is hearing", "heard"] },
+    { q: "Dan and Mia always _____ (hold) the handrail on the escalator.", a: "hold", w: ["holds", "are holding", "held"] },
+    { q: "Ian usually _____ (keep) his Octopus card in his wallet.", a: "keeps", w: ["keep", "is keeping", "kept"] },
+    { q: "Eva and Ron always _____ (know) the way to the Science Museum.", a: "know", w: ["knows", "are knowing", "knew"] },
+    { q: "Tom often _____ (learn) new English words from the dictionary.", a: "learns", w: ["learn", "is learning", "learnt"] },
+    { q: "Lily sometimes _____ (leave) her jacket in the classroom.", a: "leaves", w: ["leave", "is leaving", "left"] },
+    { q: "Jack and Sam never _____ (let) their friends copy their homework.", a: "let", w: ["lets", "are letting", "let"] },
+    { q: "Ann always _____ (light) her desk lamp when she studies at night.", a: "lights", w: ["light", "is lighting", "lit"] },
+    { q: "Bob and Pam never _____ (lose) their keys.", a: "lose", w: ["loses", "are losing", "lost"] },
+    { q: "Leo usually _____ (make) a card for Mother's Day every year.", a: "makes", w: ["make", "is making", "made"] },
+    { q: "Amy always _____ (mean) what she says.", a: "means", w: ["mean", "is meaning", "meant"] },
+    { q: "Mark and I often _____ (meet) at the tuck shop during recess.", a: "meet", w: ["meets", "are meeting", "met"] },
+    { q: "Ben usually _____ (pay) for his lunch with cash.", a: "pays", w: ["pay", "is paying", "paid"] },
+    { q: "Paul and Sue always _____ (put) their shoes on the rack.", a: "put", w: ["puts", "are putting", "put"] },
+    { q: "Ken sometimes _____ (ride) his bicycle in Tai Po on Sundays.", a: "rides", w: ["ride", "is riding", "rode"] },
+    { q: "The school bell usually _____ (ring) at 8:00 a.m. every morning.", a: "rings", w: ["ring", "is ringing", "rang"] },
+    { q: "The sun always _____ (rise) in the east every day.", a: "rises", w: ["rise", "is rising", "rose"] },
+    { q: "Tim and Roy always _____ (say) 'Good morning' to their teachers.", a: "say", w: ["says", "are saying", "said"] },
+    { q: "Joy often _____ (see) monkeys at Kam Shan Country Park.", a: "sees", w: ["see", "is seeing", "saw"] },
+    { q: "The tuck shop usually _____ (sell) snacks and drinks every day.", a: "sells", w: ["sell", "is selling", "sold"] },
+    { q: "Jim and Ray always _____ (send) WhatsApp messages to grandma.", a: "send", w: ["sends", "are sending", "sent"] },
+    { q: "Zoe often _____ (set) her alarm clock for 6:30 a.m.", a: "sets", w: ["set", "is setting", "set"] },
+    { q: "Max sometimes _____ (sew) his own torn socks.", a: "sews", w: ["sew", "is sewing", "sewed"] },
+    { q: "Dan and Mia never _____ (shake) the tables in the classroom.", a: "shake", w: ["shakes", "are shaking", "shook"] },
+    { q: "Ian always _____ (show) his report card to his parents.", a: "shows", w: ["show", "is showing", "showed"] }
+];
+
+// Level 3: Simple Past Tense (60 Questions - HK Context, Explicit Time Indicators, Varied Short Names)
+const level3 = [
+    { q: "Tom _____ (eat) dim sum with his family last Sunday.", a: "ate", w: ["eat", "eats", "eated"] },
+    { q: "Lily _____ (drink) all her water during PE class yesterday.", a: "drank", w: ["drink", "drinks", "drinked"] },
+    { q: "Jack and Sam _____ (go) to the Hong Kong Space Museum last week.", a: "went", w: ["go", "goes", "goed"] },
+    { q: "Ann _____ (take) a red taxi to Central this morning.", a: "took", w: ["take", "takes", "taked"] },
+    { q: "Bob and Pam _____ (buy) some roast meat in Mong Kok yesterday.", a: "bought", w: ["buy", "buys", "buyed"] },
+    { q: "Leo _____ (read) three English books last month.", a: "read", w: ["reads", "readed", "reading"] },
+    { q: "Amy _____ (write) a story for her homework last night.", a: "wrote", w: ["write", "writes", "writed"] },
+    { q: "Mark and I _____ (draw) a picture of the Star Ferry yesterday.", a: "drew", w: ["draw", "draws", "drawed"] },
+    { q: "Ben _____ (sleep) for ten hours last night.", a: "slept", w: ["sleep", "sleeps", "sleeped"] },
+    { q: "Paul and Sue _____ (run) to catch the MTR train this morning.", a: "ran", w: ["run", "runs", "runned"] },
+    { q: "Ken _____ (swim) at Repulse Bay beach last summer.", a: "swam", w: ["swim", "swims", "swimmed"] },
+    { q: "Tim _____ (give) his teacher an apple yesterday.", a: "gave", w: ["give", "gives", "gived"] },
+    { q: "Roy and Joy _____ (sing) in the school choir competition last year.", a: "sang", w: ["sing", "sings", "singed"] },
+    { q: "Jim _____ (sweep) the floor after the art lesson yesterday.", a: "swept", w: ["sweep", "sweeps", "sweeped"] },
+    { q: "Ray and Zoe _____ (build) a model of the Peak Tower last night.", a: "built", w: ["build", "builds", "builded"] },
+    { q: "Max _____ (choose) the red team on Sports Day last week.", a: "chose", w: ["choose", "chooses", "choosed"] },
+    { q: "Dan _____ (throw) the rubbish in the bin two minutes ago.", a: "threw", w: ["throw", "throws", "throwed"] },
+    { q: "Mia and Ian _____ (hide) behind the door to surprise Mum yesterday.", a: "hid", w: ["hide", "hides", "hided"] },
+    { q: "Eva _____ (wake) up very late this morning.", a: "woke", w: ["wake", "wakes", "waked"] },
+    { q: "Ron and I _____ (blow) up balloons for the party last night.", a: "blew", w: ["blow", "blows", "blowed"] },
+    { q: "Tom _____ (catch) the bus just in time this morning.", a: "caught", w: ["catch", "catches", "catched"] },
+    { q: "Lily _____ (cut) her finger during the cooking class yesterday.", a: "cut", w: ["cuts", "cutted", "cutting"] },
+    { q: "Jack and Sam _____ (do) all their holiday homework last week.", a: "did", w: ["do", "does", "done"] },
+    { q: "Ann _____ (drive) bumper cars at Ocean Park last month.", a: "drove", w: ["drive", "drives", "drived"] },
+    { q: "Bob _____ (fall) off his bicycle in Tai Po yesterday.", a: "fell", w: ["fall", "falls", "falled"] },
+    { q: "Leo _____ (feed) the stray cat near his building last night.", a: "fed", w: ["feed", "feeds", "feeded"] },
+    { q: "Amy and I _____ (feel) very cold during the winter last year.", a: "felt", w: ["feel", "feels", "feeled"] },
+    { q: "Mark _____ (fight) for the first place in the race yesterday.", a: "fought", w: ["fight", "fights", "fighted"] },
+    { q: "Ben and Paul _____ (find) my lost Octopus card this morning.", a: "found", w: ["find", "finds", "finded"] },
+    { q: "Sue _____ (fly) to Japan for a holiday last Christmas.", a: "flew", w: ["fly", "flies", "flied"] },
+    { q: "Ken _____ (forget) to bring his textbook yesterday.", a: "forgot", w: ["forget", "forgets", "forgetted"] },
+    { q: "Tim and Roy _____ (get) high marks in the General Studies test last week.", a: "got", w: ["get", "gets", "gotten"] },
+    { q: "Joy _____ (grow) two inches taller last year.", a: "grew", w: ["grow", "grows", "growed"] },
+    { q: "Jim and Ray _____ (hang) the washing outside yesterday morning.", a: "hung", w: ["hang", "hangs", "hanged"] },
+    { q: "Zoe _____ (have) a stomachache after eating too much ice cream yesterday.", a: "had", w: ["have", "has", "haved"] },
+    { q: "Max _____ (hear) the school bell ring ten minutes ago.", a: "heard", w: ["hear", "hears", "heared"] },
+    { q: "Dan and Mia _____ (hold) hands when crossing the road this morning.", a: "held", w: ["hold", "holds", "holded"] },
+    { q: "Ian _____ (keep) the secret from his friends last week.", a: "kept", w: ["keep", "keeps", "keeped"] },
+    { q: "Eva and Ron _____ (know) the answer to the quiz yesterday.", a: "knew", w: ["know", "knows", "knowed"] },
+    { q: "Tom _____ (learn) how to make siu mai last weekend.", a: "learnt", w: ["learn", "learns", "learned"] },
+    { q: "Lily _____ (leave) school early yesterday because she was sick.", a: "left", w: ["leave", "leaves", "leaved"] },
+    { q: "Jack and Sam _____ (let) the old lady sit on the MTR this morning.", a: "let", w: ["lets", "letted", "letting"] },
+    { q: "Ann _____ (light) the candles on the cake last night.", a: "lit", w: ["light", "lights", "lighted"] },
+    { q: "Bob and Pam _____ (lose) their umbrella on the bus yesterday.", a: "lost", w: ["lose", "loses", "losed"] },
+    { q: "Leo _____ (make) a beautiful lantern for the festival last year.", a: "made", w: ["make", "makes", "maked"] },
+    { q: "Amy _____ (mean) to finish her lunch but she was too full yesterday.", a: "meant", w: ["mean", "means", "meaned"] },
+    { q: "Mark and I _____ (meet) our new teacher last week.", a: "met", w: ["meet", "meets", "meeted"] },
+    { q: "Ben _____ (pay) for his comics with his pocket money yesterday.", a: "paid", w: ["pay", "pays", "payed"] },
+    { q: "Paul and Sue _____ (put) the groceries in the fridge this morning.", a: "put", w: ["puts", "putted", "putting"] },
+    { q: "Ken _____ (ride) the tram on Hong Kong Island last weekend.", a: "rode", w: ["ride", "rides", "rided"] },
+    { q: "The phone _____ (ring) loudly during dinner last night.", a: "rang", w: ["ring", "rings", "ringed"] },
+    { q: "The sun _____ (rise) beautifully over the sea this morning.", a: "rose", w: ["rise", "rises", "rised"] },
+    { q: "Tim and Roy _____ (say) thank you to the tuck shop lady yesterday.", a: "said", w: ["say", "says", "sayed"] },
+    { q: "Joy _____ (see) a famous actor in Causeway Bay last month.", a: "saw", w: ["see", "sees", "seed"] },
+    { q: "Jim and Ray _____ (sell) old books at the market last Sunday.", a: "sold", w: ["sell", "sells", "selled"] },
+    { q: "Zoe _____ (send) an email to her cousin last night.", a: "sent", w: ["send", "sends", "sended"] },
+    { q: "Max _____ (set) the table for his mother yesterday evening.", a: "set", w: ["sets", "setted", "setting"] },
+    { q: "Dan and Mia _____ (sew) their torn uniforms last week.", a: "sewed", w: ["sew", "sews", "sewn"] },
+    { q: "Ian _____ (shake) the bottle of juice before drinking it yesterday.", a: "shook", w: ["shake", "shakes", "shaked"] },
+    { q: "Eva and Ron _____ (show) the tourists the way to the peak yesterday.", a: "showed", w: ["show", "shows", "shown"] }
+];
+
+
+        const config = {
+            'level1': { bank: level1, name: "🍄 Mushroom Cup: Present Continuous", pts: 10 },
+            'level2': { bank: level2, name: "⭐️ Star Cup: Present Tense", pts: 15 },
+            'level3': { bank: level3, name: "🐢 Shell Cup: Past Tense", pts: 20 },
+            'mixed': { bank: [...level1, ...level2, ...level3], name: "🌈 Rainbow Road: Mixed Tenses", pts: 30 }
+        };
+
+        let mode, typeLevel, timer, timeLeft;
+        let stats = { total: 0, correct: 0, score: 0 };
+        let currQ = null;
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function showLeaderboard() {
+            showScreen('leaderboard-screen');
+            if(window.fetchLeaderboard) window.fetchLeaderboard();
+        }
+
+        function requestExit() {
+            showModal("🛑 Pit Stop!", "Are you sure you want to quit the race? Data will be lost!", "confirm", () => {
+                clearInterval(timer);
+                showScreen('menu-screen');
+            });
+        }
+
+        function startGame(selectedMode) {
+            if (selectedMode === 'timed' && !currentUser) {
+                showModal("PIT STOP", "You must login with Google to race in Time Trials!");
+                return;
+            }
+
+            mode = selectedMode;
+            typeLevel = document.getElementById('question-type').value;
+            stats = { total: 0, correct: 0, score: 0 };
+            
+            document.getElementById('score-display').style.display = (mode === 'timed') ? 'inline' : 'none';
+            document.getElementById('level-display').innerText = config[typeLevel].name;
+            updateStatsUI();
+            
+            if (mode === 'infinite') {
+                document.getElementById('time-display').innerText = "Mode: Free Practice";
+                clearInterval(timer);
+            } else {
+                timeLeft = 180; // 3 mins
+                updateTimeUI();
+                clearInterval(timer);
+                timer = setInterval(() => {
+                    timeLeft--; updateTimeUI();
+                    if(timeLeft <= 0) { clearInterval(timer); endGame(); }
+                }, 1000);
+            }
+            showScreen('game-screen');
+            generateQuestion();
+        }
+
+        function updateTimeUI() {
+            document.getElementById('time-display').innerText = `Time: ${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}`;
+            document.getElementById('time-display').style.color = (timeLeft <= 10 && mode !== 'infinite') ? 'var(--mario-red)' : 'var(--coin-gold)';
+        }
+
+        function generateQuestion() {
+            const bank = config[typeLevel].bank;
+            currQ = bank[Math.floor(Math.random() * bank.length)];
+            
+            let formattedQ = currQ.q.replace(/_____/g, '<span class="blank-space">_____</span>');
+
+            document.getElementById('question-text').innerHTML = '<span>' + formattedQ + '</span>';
+            
+            let options = [currQ.a, ...currQ.w].sort(() => Math.random() - 0.5);
+            const container = document.getElementById('choices-container');
+            container.innerHTML = '';
+            
+            options.forEach(opt => {
+                let btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt);
+                container.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(ans) {
+            stats.total++;
+            const c = document.getElementById('app-container');
+            c.classList.remove('feedback-correct', 'feedback-wrong');
+            void c.offsetWidth; 
+            
+            if (ans === currQ.a) {
+                stats.correct++;
+                if(mode === 'timed') stats.score += config[typeLevel].pts;
+                c.classList.add('feedback-correct');
+            } else {
+                if(mode === 'timed') stats.score = Math.max(0, stats.score - 5);
+                c.classList.add('feedback-wrong');
+                
+                const indicator = getTimeIndicator(currQ.q);
+                let indicatorTip = indicator 
+                    ? `⏰ <b>Time Keyword:</b> <i>"${indicator}"</i> indicates the correct tense.`
+                    : `⏰ <b>Time Keyword Tip:</b> Pay attention to time words like <i>now</i>, <i>every day</i>, or <i>yesterday</i>!`;
+
+                let beVerbTip = getBeVerbTip(currQ.q, ans, currQ.a);
+                let beVerbHtml = beVerbTip ? `<div class="tip-box">${beVerbTip}</div>` : '';
+
+                let modalBody = `
+                    The correct answer was:<br>
+                    <b style="color:var(--mario-red); font-size:22px;">${currQ.a}</b>
+                    <div class="tip-box" style="margin-top:15px;">
+                        ${indicatorTip}
+                    </div>
+                    ${beVerbHtml}
+                `;
+
+                showModal("🍌 Whoops!", modalBody);
+            }
+            setTimeout(() => c.classList.remove('feedback-correct', 'feedback-wrong'), 400);
+            updateStatsUI();
+            generateQuestion();
+        }
+
+        function updateStatsUI() {
+            let acc = stats.total ? Math.round((stats.correct/stats.total)*100) : 0;
+            document.getElementById('progress-display').innerText = `Laps: ${stats.correct}/${stats.total} (${acc}%)`;
+            document.getElementById('score-display').innerText = `Score: ${stats.score}`;
+        }
+
+        function endGame() {
+            showScreen('result-screen');
+            let acc = stats.total ? Math.round((stats.correct/stats.total)*100) : 0;
+            let html = `Total Questions: <b style="color:var(--toad-blue)">${stats.total}</b><br>
+                        Correct: <b style="color:var(--luigi-green)">${stats.correct}</b><br>
+                        Accuracy: <b style="color:var(--bowser-orange)">${acc}%</b><br>`;
+            
+            if (mode === 'timed' && currentUser) {
+                html += `<hr style="border-top:2px dashed var(--track-grey); margin:15px 0;">
+                         <span style="color:var(--mario-red); font-size:24px; font-family:'Titan One'; text-transform:uppercase;">FINAL SCORE: ${stats.score}</span>`;
+                document.getElementById('upload-section').style.display = 'block';
+                document.getElementById('upload-name-display').innerText = currentUser.lastName;
+            } else {
+                document.getElementById('upload-section').style.display = 'none';
+            }
+            document.getElementById('final-stats').innerHTML = html;
+        }
+
+        function submitScore() {
+            const stuClass = document.getElementById('class-select').value;
+            const stuNum = document.getElementById('student-num').value;
+            if(!stuNum || stuNum < 1 || stuNum > 40) return showModal("Hold on!", "Please enter a valid Class Number (1-40).");
+            
+            if(window.saveToFirebase) {
+                window.saveToFirebase({
+                    class: stuClass,
+                    studentNum: parseInt(stuNum),
+                    lastName: currentUser.lastName,
+                    googleId: currentUser.id,
+                    score: stats.score,
+                    accuracy: stats.total ? Math.round((stats.correct/stats.total)*100) : 0,
+                    questionType: typeLevel 
+                });
+            }
+        }
+    </script>
+</body>
+</html>
