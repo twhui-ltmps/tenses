@@ -363,11 +363,11 @@
                 
                 <select id="filter-class" onchange="fetchLeaderboard()">
                     <option value="ALL">🌎 All Racers</option>
+                    <option value="1A">1A</option>
+                    <option value="2A">2A</option>
+                    <option value="3A">3A</option>
+                    <option value="4A">4A</option>
                     <option value="5A">5A</option>
-                    <option value="5B">5B</option>
-                    <option value="5C">5C</option>
-                    <option value="5D">5D</option>
-                    <option value="5E">5E</option>
                 </select>
             </div>
             <div class="table-container">
@@ -454,7 +454,7 @@
 
         window.onload = function () {
             google.accounts.id.initialize({
-                client_id: "116742217903-7ni36v4h16gcakn45n699r9guthfjiu6.apps.googleusercontent.com",
+                client_id: "623171860819-1fldq3op0pmilgapk5o2j9c3f8oa7d39.apps.googleusercontent.com",
                 callback: handleCredentialResponse
             });
             google.accounts.id.renderButton(
@@ -467,89 +467,101 @@
     <!-- Firebase Logic -->
 <script type="module">
   // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-analytics.js";
+  import { 
+    getFirestore, 
+    doc, 
+    getDoc, 
+    setDoc, 
+    collection, 
+    query, 
+    where, 
+    orderBy, 
+    limit, 
+    getDocs 
+  } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
   // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
-    apiKey: "AIzaSyBVju3LLYlJ1b7RD-jy61-k6HyVaqDCzmc",
-    authDomain: "tenses-251fc.firebaseapp.com",
-    projectId: "tenses-251fc",
-    storageBucket: "tenses-251fc.firebasestorage.app",
-    messagingSenderId: "116742217903",
-    appId: "1:116742217903:web:071bfecba4d38eec51345a",
-    measurementId: "G-CRM2KKPHSJ"
+    apiKey: "AIzaSyDUODAImoAOc-o9sgOrhOYz1kImZcg3cqI",
+    authDomain: "test-7f93c.firebaseapp.com",
+    projectId: "test-7f93c",
+    storageBucket: "test-7f93c.firebasestorage.app",
+    messagingSenderId: "623171860819",
+    appId: "1:623171860819:web:587304c09b0e8bfcebc9a6",
+    measurementId: "G-S68W1EQDYS"
   };
 
-  // Initialize Firebase
+  // Initialize Firebase and Firestore
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
+  const db = getFirestore(app);
 
+  window.saveToFirebase = async (data) => {
+      const btn = document.getElementById('submit-score-btn');
+      try {
+          btn.innerText = "Transmitting... 📡";
+          btn.disabled = true;
+          const docId = `${data.googleId}_timed_${data.questionType}`;
+          const docRef = doc(db, "leaderboard", docId);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists() && data.score <= docSnap.data().score) {
+              showModal("🐢 Too Slow!", `Your top Score in this Cup is ${docSnap.data().score}. You didn't beat your record.`);
+              btn.innerText = "Submit Score 📡";
+              btn.disabled = false;
+              return;
+          }
+          
+          await setDoc(docRef, { ...data, gameMode: "timed", timestamp: new Date() });
+          showModal("⭐️ New Record!", "Score saved successfully! Check the Hall of Fame.");
+          document.getElementById('filter-mode').value = `timed_${data.questionType}`;
+          showScreen('leaderboard-screen');
+          fetchLeaderboard();
+      } catch (e) {
+          showModal("🍌 Slip Up!", "Error saving data. Please check your internet connection.");
+      } finally {
+          btn.innerText = "Submit Score 📡";
+          btn.disabled = false;
+      }
+  };
 
-        window.saveToFirebase = async (data) => {
-            const btn = document.getElementById('submit-score-btn');
-            try {
-                btn.innerText = "Transmitting... 📡";
-                btn.disabled = true;
-                const docId = `${data.googleId}_timed_${data.questionType}`;
-                const docRef = doc(db, "leaderboard", docId);
-                const docSnap = await getDoc(docRef);
-                
-                if (docSnap.exists() && data.score <= docSnap.data().score) {
-                    showModal("🐢 Too Slow!", `Your top Score in this Cup is ${docSnap.data().score}. You didn't beat your record.`);
-                    btn.innerText = "Submit Score 📡";
-                    btn.disabled = false;
-                    return;
-                }
-                
-                await setDoc(docRef, { ...data, gameMode: "timed", timestamp: new Date() });
-                showModal("⭐️ New Record!", "Score saved successfully! Check the Hall of Fame.");
-                document.getElementById('filter-mode').value = `timed_${data.questionType}`;
-                showScreen('leaderboard-screen');
-                fetchLeaderboard();
-            } catch (e) {
-                showModal("🍌 Slip Up!", "Error saving data. Please check your internet connection.");
-            } finally {
-                btn.innerText = "Submit Score 📡";
-                btn.disabled = false;
-            }
-        };
+  window.fetchLeaderboard = async () => {
+      const tbody = document.getElementById('leaderboard-body');
+      tbody.innerHTML = "<tr><td colspan='6'>Fetching records... 🏎️💨</td></tr>";
+      const qType = document.getElementById('filter-mode').value.split('_')[1]; 
+      const cls = document.getElementById('filter-class').value;
+      
+      let conds = [where("gameMode", "==", "timed"), where("questionType", "==", qType)];
+      if (cls !== "ALL") conds.push(where("class", "==", cls));
 
-        window.fetchLeaderboard = async () => {
-            const tbody = document.getElementById('leaderboard-body');
-            tbody.innerHTML = "<tr><td colspan='6'>Fetching records... 🏎️💨</td></tr>";
-            const qType = document.getElementById('filter-mode').value.split('_')[1]; 
-            const cls = document.getElementById('filter-class').value;
-            
-            let conds = [where("gameMode", "==", "timed"), where("questionType", "==", qType)];
-            if (cls !== "ALL") conds.push(where("class", "==", cls));
-
-            try {
-                const q = query(collection(db, "leaderboard"), ...conds, orderBy("score", "desc"), limit(30));
-                const snap = await getDocs(q);
-                tbody.innerHTML = snap.empty ? "<tr><td colspan='6'>No records found in this Cup.</td></tr>" : "";
-                
-                let rank = 1;
-                snap.forEach((doc) => {
-                    const d = doc.data();
-                    let rDisp = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank;
-                    tbody.innerHTML += `
-                        <tr>
-                            <td style="font-weight:900;">${rDisp}</td>
-                            <td>${d.class}</td>
-                            <td>${d.studentNum}</td>
-                            <td style="font-family:'Titan One'; color:var(--toad-blue);">${d.lastName}</td>
-                            <td style="color:var(--mario-red); font-weight:900;">${d.score}</td>
-                            <td>${d.accuracy}%</td>
-                        </tr>`;
-                    rank++;
-                });
-            } catch (e) { tbody.innerHTML = `<tr><td colspan='6' style="color:var(--mario-red);">Error retrieving data.</td></tr>`; }
-        };
-    </script>
+      try {
+          const q = query(collection(db, "leaderboard"), ...conds, orderBy("score", "desc"), limit(30));
+          const snap = await getDocs(q);
+          tbody.innerHTML = snap.empty ? "<tr><td colspan='6'>No records found in this Cup.</td></tr>" : "";
+          
+          let rank = 1;
+          snap.forEach((doc) => {
+              const d = doc.data();
+              let rDisp = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank;
+              tbody.innerHTML += `
+                  <tr>
+                      <td style="font-weight:900;">${rDisp}</td>
+                      <td>${d.class}</td>
+                      <td>${d.studentNum}</td>
+                      <td style="font-family:'Titan One'; color:var(--toad-blue);">${d.lastName}</td>
+                      <td style="color:var(--mario-red); font-weight:900;">${d.score}</td>
+                      <td>${d.accuracy}%</td>
+                  </tr>`;
+              rank++;
+          });
+      } catch (e) { 
+          console.error(e);
+          tbody.innerHTML = `<tr><td colspan='6' style="color:var(--mario-red);">Error retrieving data.</td></tr>`; 
+      }
+  };
+</script>
 
     <!-- Game Logic & Question Banks (HK Primary 1-5 Context) -->
     <script>
