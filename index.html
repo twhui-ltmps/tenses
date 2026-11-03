@@ -527,24 +527,37 @@
       }
   };
 
-  window.fetchLeaderboard = async () => {
+  async function fetchLeaderboard() {
       const tbody = document.getElementById('leaderboard-body');
       tbody.innerHTML = "<tr><td colspan='6'>Fetching records... 🏎️💨</td></tr>";
-      const qType = document.getElementById('filter-mode').value.split('_')[1]; 
+      const qType = document.getElementById('filter-mode').value.split('_')[1];
       const cls = document.getElementById('filter-class').value;
-      
-      let conds = [where("gameMode", "==", "timed"), where("questionType", "==", qType)];
-      if (cls !== "ALL") conds.push(where("class", "==", cls));
 
       try {
-          const q = query(collection(db, "leaderboard"), ...conds, orderBy("score", "desc"), limit(30));
+          const filters = [
+              where("gameMode", "==", "timed"),
+              where("questionType", "==", qType)
+          ];
+          if (cls !== "ALL") filters.push(where("class", "==", cls));
+
+          const q = query(
+              collection(db, "leaderboard"),
+              ...filters,
+              orderBy("score", "desc"),
+              limit(30)
+          );
           const snap = await getDocs(q);
-          tbody.innerHTML = snap.empty ? "<tr><td colspan='6'>No records found in this Cup.</td></tr>" : "";
-          
+
+          if (snap.empty) {
+              tbody.innerHTML = "<tr><td colspan='6'>No records found in this Cup.</td></tr>";
+              return;
+          }
+
+          tbody.innerHTML = "";
           let rank = 1;
-          snap.forEach((doc) => {
-              const d = doc.data();
-              let rDisp = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank;
+          snap.forEach((docSnap) => {
+              const d = docSnap.data();
+              const rDisp = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank;
               tbody.innerHTML += `
                   <tr>
                       <td style="font-weight:900;">${rDisp}</td>
@@ -556,11 +569,13 @@
                   </tr>`;
               rank++;
           });
-      } catch (e) { 
+      } catch (e) {
           console.error(e);
-          tbody.innerHTML = `<tr><td colspan='6' style="color:var(--mario-red);">Error retrieving data.</td></tr>`; 
+          const message = String(e && e.message ? e.message : e);
+          tbody.innerHTML = `<tr><td colspan='6' style="color:var(--mario-red);">Error retrieving data. ${message.replace(/</g, "&lt;")}</td></tr>`;
       }
-  };
+  }
+  window.fetchLeaderboard = fetchLeaderboard;
 </script>
 
     <!-- Game Logic & Question Banks (HK Primary 1-5 Context) -->
