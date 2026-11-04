@@ -336,11 +336,11 @@
 
                 <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                     <select id="class-select" style="flex: 1;">
-                        <option value="1A">Kart 1A</option>
-                        <option value="2A">Kart 2A</option>
-                        <option value="3A">Kart 3A</option>
-                        <option value="4A">Kart 4A</option>
                         <option value="5A">Kart 5A</option>
+                        <option value="5B">Kart 5B</option>
+                        <option value="5C">Kart 5C</option>
+                        <option value="5D">Kart 5D</option>
+                        <option value="5E">Kart 5E</option>
                     </select>
                     <input type="number" id="student-num" placeholder="Class No. (1-40)" min="1" max="40" style="flex: 2;">
                 </div>
@@ -454,7 +454,7 @@
 
         window.onload = function () {
             google.accounts.id.initialize({
-                client_id: "116742217903-7ni36v4h16gcakn45n699r9guthfjiu6.apps.googleusercontent.com",
+                client_id: "623171860819-1fldq3op0pmilgapk5o2j9c3f8oa7d39.apps.googleusercontent.com",
                 callback: handleCredentialResponse
             });
             google.accounts.id.renderButton(
@@ -467,89 +467,116 @@
     <!-- Firebase Logic -->
 <script type="module">
   // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-analytics.js";
+  import { 
+    getFirestore, 
+    doc, 
+    getDoc, 
+    setDoc, 
+    collection, 
+    query, 
+    where, 
+    orderBy, 
+    limit, 
+    getDocs 
+  } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
   // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
-    apiKey: "AIzaSyBVju3LLYlJ1b7RD-jy61-k6HyVaqDCzmc",
-    authDomain: "tenses-251fc.firebaseapp.com",
-    projectId: "tenses-251fc",
-    storageBucket: "tenses-251fc.firebasestorage.app",
-    messagingSenderId: "116742217903",
-    appId: "1:116742217903:web:071bfecba4d38eec51345a",
-    measurementId: "G-CRM2KKPHSJ"
+    apiKey: "AIzaSyDUODAImoAOc-o9sgOrhOYz1kImZcg3cqI",
+    authDomain: "test-7f93c.firebaseapp.com",
+    projectId: "test-7f93c",
+    storageBucket: "test-7f93c.firebasestorage.app",
+    messagingSenderId: "623171860819",
+    appId: "1:623171860819:web:587304c09b0e8bfcebc9a6",
+    measurementId: "G-S68W1EQDYS"
   };
 
-  // Initialize Firebase
+  // Initialize Firebase and Firestore
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
+  const db = getFirestore(app);
 
+  window.saveToFirebase = async (data) => {
+      const btn = document.getElementById('submit-score-btn');
+      try {
+          btn.innerText = "Transmitting... 📡";
+          btn.disabled = true;
+          const docId = `${data.googleId}_timed_${data.questionType}`;
+          const docRef = doc(db, "leaderboard", docId);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists() && data.score <= docSnap.data().score) {
+              showModal("🐢 Too Slow!", `Your top Score in this Cup is ${docSnap.data().score}. You didn't beat your record.`);
+              btn.innerText = "Submit Score 📡";
+              btn.disabled = false;
+              return;
+          }
+          
+          await setDoc(docRef, { ...data, gameMode: "timed", timestamp: new Date() });
+          showModal("⭐️ New Record!", "Score saved successfully! Check the Hall of Fame.");
+          document.getElementById('filter-mode').value = `timed_${data.questionType}`;
+          showScreen('leaderboard-screen');
+          fetchLeaderboard();
+      } catch (e) {
+          showModal("🍌 Slip Up!", "Error saving data. Please check your internet connection.");
+      } finally {
+          btn.innerText = "Submit Score 📡";
+          btn.disabled = false;
+      }
+  };
 
-        window.saveToFirebase = async (data) => {
-            const btn = document.getElementById('submit-score-btn');
-            try {
-                btn.innerText = "Transmitting... 📡";
-                btn.disabled = true;
-                const docId = `${data.googleId}_timed_${data.questionType}`;
-                const docRef = doc(db, "leaderboard", docId);
-                const docSnap = await getDoc(docRef);
-                
-                if (docSnap.exists() && data.score <= docSnap.data().score) {
-                    showModal("🐢 Too Slow!", `Your top Score in this Cup is ${docSnap.data().score}. You didn't beat your record.`);
-                    btn.innerText = "Submit Score 📡";
-                    btn.disabled = false;
-                    return;
-                }
-                
-                await setDoc(docRef, { ...data, gameMode: "timed", timestamp: new Date() });
-                showModal("⭐️ New Record!", "Score saved successfully! Check the Hall of Fame.");
-                document.getElementById('filter-mode').value = `timed_${data.questionType}`;
-                showScreen('leaderboard-screen');
-                fetchLeaderboard();
-            } catch (e) {
-                showModal("🍌 Slip Up!", "Error saving data. Please check your internet connection.");
-            } finally {
-                btn.innerText = "Submit Score 📡";
-                btn.disabled = false;
-            }
-        };
+  async function fetchLeaderboard() {
+      const tbody = document.getElementById('leaderboard-body');
+      tbody.innerHTML = "<tr><td colspan='6'>Fetching records... 🏎️💨</td></tr>";
+      const qType = document.getElementById('filter-mode').value.split('_')[1];
+      const cls = document.getElementById('filter-class').value;
 
-        window.fetchLeaderboard = async () => {
-            const tbody = document.getElementById('leaderboard-body');
-            tbody.innerHTML = "<tr><td colspan='6'>Fetching records... 🏎️💨</td></tr>";
-            const qType = document.getElementById('filter-mode').value.split('_')[1]; 
-            const cls = document.getElementById('filter-class').value;
-            
-            let conds = [where("gameMode", "==", "timed"), where("questionType", "==", qType)];
-            if (cls !== "ALL") conds.push(where("class", "==", cls));
+      try {
+          const filters = [
+              where("gameMode", "==", "timed"),
+              where("questionType", "==", qType)
+          ];
+          if (cls !== "ALL") filters.push(where("class", "==", cls));
 
-            try {
-                const q = query(collection(db, "leaderboard"), ...conds, orderBy("score", "desc"), limit(30));
-                const snap = await getDocs(q);
-                tbody.innerHTML = snap.empty ? "<tr><td colspan='6'>No records found in this Cup.</td></tr>" : "";
-                
-                let rank = 1;
-                snap.forEach((doc) => {
-                    const d = doc.data();
-                    let rDisp = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank;
-                    tbody.innerHTML += `
-                        <tr>
-                            <td style="font-weight:900;">${rDisp}</td>
-                            <td>${d.class}</td>
-                            <td>${d.studentNum}</td>
-                            <td style="font-family:'Titan One'; color:var(--toad-blue);">${d.lastName}</td>
-                            <td style="color:var(--mario-red); font-weight:900;">${d.score}</td>
-                            <td>${d.accuracy}%</td>
-                        </tr>`;
-                    rank++;
-                });
-            } catch (e) { tbody.innerHTML = `<tr><td colspan='6' style="color:var(--mario-red);">Error retrieving data.</td></tr>`; }
-        };
-    </script>
+          const q = query(
+              collection(db, "leaderboard"),
+              ...filters,
+              orderBy("score", "desc"),
+              limit(30)
+          );
+          const snap = await getDocs(q);
+
+          if (snap.empty) {
+              tbody.innerHTML = "<tr><td colspan='6'>No records found in this Cup.</td></tr>";
+              return;
+          }
+
+          tbody.innerHTML = "";
+          let rank = 1;
+          snap.forEach((docSnap) => {
+              const d = docSnap.data();
+              const rDisp = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank;
+              tbody.innerHTML += `
+                  <tr>
+                      <td style="font-weight:900;">${rDisp}</td>
+                      <td>${d.class}</td>
+                      <td>${d.studentNum}</td>
+                      <td style="font-family:'Titan One'; color:var(--toad-blue);">${d.lastName}</td>
+                      <td style="color:var(--mario-red); font-weight:900;">${d.score}</td>
+                      <td>${d.accuracy}%</td>
+                  </tr>`;
+              rank++;
+          });
+      } catch (e) {
+          console.error(e);
+          const message = String(e && e.message ? e.message : e);
+          tbody.innerHTML = `<tr><td colspan='6' style="color:var(--mario-red);">Error retrieving data. ${message.replace(/</g, "&lt;")}</td></tr>`;
+      }
+  }
+  window.fetchLeaderboard = fetchLeaderboard;
+</script>
 
     <!-- Game Logic & Question Banks (HK Primary 1-5 Context) -->
     <script>
@@ -655,7 +682,7 @@ const level2 = [
     { q: "Jack and Sam often _____ (go) to Hong Kong Disneyland on holidays.", a: "go", w: ["goes", "are going", "went"] },
     { q: "Ann sometimes _____ (take) the minibus to school every day.", a: "takes", w: ["take", "is taking", "took"] },
     { q: "Bob and Pam usually _____ (buy) fresh fruit from the wet market.", a: "buy", w: ["buys", "are buying", "bought"] },
-    { q: "Leo always _____ (read) the newspaper on the MTR every morning.", a: "reads", w: ["read", "is reading", "read"] },
+    { q: "Leo always _____ (read) the newspaper on the MTR every morning.", a: "reads", w: ["read", "is reading", "readed"] },
     { q: "Amy often _____ (write) notes in her English lesson.", a: "writes", w: ["write", "is writing", "wrote"] },
     { q: "Mark and I never _____ (draw) on the classroom walls.", a: "draw", w: ["draws", "are drawing", "drew"] },
     { q: "Ben usually _____ (sleep) at 9:30 p.m. every night.", a: "sleeps", w: ["sleep", "is sleeping", "slept"] },
@@ -671,7 +698,7 @@ const level2 = [
     { q: "Eva usually _____ (wake) up at 7:00 a.m. on weekdays.", a: "wakes", w: ["wake", "is waking", "woke"] },
     { q: "Ron and I always _____ (blow) the candles on our birthday cakes.", a: "blow", w: ["blows", "are blowing", "blew"] },
     { q: "Tom often _____ (catch) the school bus at 7:30 a.m.", a: "catches", w: ["catch", "is catching", "caught"] },
-    { q: "Lily sometimes _____ (cut) her fingernails on Sundays.", a: "cuts", w: ["cut", "is cutting", "cut"] },
+    { q: "Lily sometimes _____ (cut) her fingernails on Sundays.", a: "cuts", w: ["cut", "is cutting", "cutted"] },
     { q: "Jack and Sam always _____ (do) their homework before dinner.", a: "do", w: ["does", "are doing", "did"] },
     { q: "Ann's dad usually _____ (drive) them to Sha Tin on weekends.", a: "drives", w: ["drive", "is driving", "drove"] },
     { q: "Bob never _____ (fall) asleep during the Maths lesson.", a: "falls", w: ["fall", "is falling", "fell"] },
@@ -691,14 +718,14 @@ const level2 = [
     { q: "Eva and Ron always _____ (know) the way to the Science Museum.", a: "know", w: ["knows", "are knowing", "knew"] },
     { q: "Tom often _____ (learn) new English words from the dictionary.", a: "learns", w: ["learn", "is learning", "learnt"] },
     { q: "Lily sometimes _____ (leave) her jacket in the classroom.", a: "leaves", w: ["leave", "is leaving", "left"] },
-    { q: "Jack and Sam never _____ (let) their friends copy their homework.", a: "let", w: ["lets", "are letting", "let"] },
+    { q: "Jack and Sam never _____ (let) their friends copy their homework.", a: "let", w: ["lets", "are letting", "letted"] },
     { q: "Ann always _____ (light) her desk lamp when she studies at night.", a: "lights", w: ["light", "is lighting", "lit"] },
     { q: "Bob and Pam never _____ (lose) their keys.", a: "lose", w: ["loses", "are losing", "lost"] },
     { q: "Leo usually _____ (make) a card for Mother's Day every year.", a: "makes", w: ["make", "is making", "made"] },
     { q: "Amy always _____ (mean) what she says.", a: "means", w: ["mean", "is meaning", "meant"] },
     { q: "Mark and I often _____ (meet) at the tuck shop during recess.", a: "meet", w: ["meets", "are meeting", "met"] },
     { q: "Ben usually _____ (pay) for his lunch with cash.", a: "pays", w: ["pay", "is paying", "paid"] },
-    { q: "Paul and Sue always _____ (put) their shoes on the rack.", a: "put", w: ["puts", "are putting", "put"] },
+    { q: "Paul and Sue always _____ (put) their shoes on the rack.", a: "put", w: ["puts", "are putting", "putted"] },
     { q: "Ken sometimes _____ (ride) his bicycle in Tai Po on Sundays.", a: "rides", w: ["ride", "is riding", "rode"] },
     { q: "The school bell usually _____ (ring) at 8:00 a.m. every morning.", a: "rings", w: ["ring", "is ringing", "rang"] },
     { q: "The sun always _____ (rise) in the east every day.", a: "rises", w: ["rise", "is rising", "rose"] },
@@ -706,7 +733,7 @@ const level2 = [
     { q: "Joy often _____ (see) monkeys at Kam Shan Country Park.", a: "sees", w: ["see", "is seeing", "saw"] },
     { q: "The tuck shop usually _____ (sell) snacks and drinks every day.", a: "sells", w: ["sell", "is selling", "sold"] },
     { q: "Jim and Ray always _____ (send) WhatsApp messages to grandma.", a: "send", w: ["sends", "are sending", "sent"] },
-    { q: "Zoe often _____ (set) her alarm clock for 6:30 a.m.", a: "sets", w: ["set", "is setting", "set"] },
+    { q: "Zoe often _____ (set) her alarm clock for 6:30 a.m.", a: "sets", w: ["set", "is setting", "setted"] },
     { q: "Max sometimes _____ (sew) his own torn socks.", a: "sews", w: ["sew", "is sewing", "sewed"] },
     { q: "Dan and Mia never _____ (shake) the tables in the classroom.", a: "shake", w: ["shakes", "are shaking", "shook"] },
     { q: "Ian always _____ (show) his report card to his parents.", a: "shows", w: ["show", "is showing", "showed"] }
@@ -753,10 +780,10 @@ const level3 = [
     { q: "Dan and Mia _____ (hold) hands when crossing the road this morning.", a: "held", w: ["hold", "holds", "holded"] },
     { q: "Ian _____ (keep) the secret from his friends last week.", a: "kept", w: ["keep", "keeps", "keeped"] },
     { q: "Eva and Ron _____ (know) the answer to the quiz yesterday.", a: "knew", w: ["know", "knows", "knowed"] },
-    { q: "Tom _____ (learn) how to make siu mai last weekend.", a: "learnt", w: ["learn", "learns", "learned"] },
+    { q: "Tom _____ (learn) how to make siu mai last weekend.", a: "learnt", w: ["learn", "learns", "learning"] },
     { q: "Lily _____ (leave) school early yesterday because she was sick.", a: "left", w: ["leave", "leaves", "leaved"] },
     { q: "Jack and Sam _____ (let) the old lady sit on the MTR this morning.", a: "let", w: ["lets", "letted", "letting"] },
-    { q: "Ann _____ (light) the candles on the cake last night.", a: "lit", w: ["light", "lights", "lighted"] },
+    { q: "Ann _____ (light) the candles on the cake last night.", a: "lit", w: ["light", "lights", "lighting"] },
     { q: "Bob and Pam _____ (lose) their umbrella on the bus yesterday.", a: "lost", w: ["lose", "loses", "losed"] },
     { q: "Leo _____ (make) a beautiful lantern for the festival last year.", a: "made", w: ["make", "makes", "maked"] },
     { q: "Amy _____ (mean) to finish her lunch but she was too full yesterday.", a: "meant", w: ["mean", "means", "meaned"] },
