@@ -498,13 +498,15 @@
   const analytics = getAnalytics(app);
   const db = getFirestore(app);
 
+  const APP_COLLECTION_NAME = "2627p5_tenses_kart";
+
   window.saveToFirebase = async (data) => {
       const btn = document.getElementById('submit-score-btn');
       try {
           btn.innerText = "Transmitting... 📡";
           btn.disabled = true;
           const docId = `${data.googleId}_timed_${data.questionType}`;
-          const docRef = doc(db, "leaderboard", docId);
+          const docRef = doc(db, APP_COLLECTION_NAME, docId);
           const docSnap = await getDoc(docRef);
           
           if (docSnap.exists() && data.score <= docSnap.data().score) {
@@ -541,7 +543,7 @@
           if (cls !== "ALL") filters.push(where("class", "==", cls));
 
           const q = query(
-              collection(db, "leaderboard"),
+              collection(db, APP_COLLECTION_NAME),
               ...filters,
               orderBy("score", "desc"),
               limit(30)
@@ -571,8 +573,9 @@
           });
       } catch (e) {
           console.error(e);
-          const message = String(e && e.message ? e.message : e);
-          tbody.innerHTML = `<tr><td colspan='6' style="color:var(--mario-red);">Error retrieving data. ${message.replace(/</g, "&lt;")}</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan='6' style="color:var(--mario-red); font-size:12px;">
+              Error retrieving data. Firestore index may be missing. Check browser console (F12) for index link.
+          </td></tr>`;
       }
   }
   window.fetchLeaderboard = fetchLeaderboard;
